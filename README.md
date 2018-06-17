@@ -2,8 +2,11 @@
 Core logic for Unity projects. 
 ## How to start
 1) Import into your Unity projects:
+
 1.1) Resources (prefab Debug_ApplicationSystem need for work in editor)
+
 1.2) Scripts
+
 2) Create Scene Controllers for your scenes. For example:
 ```C#
 namespace Controllers.TestScene
