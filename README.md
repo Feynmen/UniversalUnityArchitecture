@@ -7,7 +7,7 @@ Core logic for Unity projects.
 
 1.2) Scripts
 
-2) Create Scene Controllers for your scenes. For example:
+2) Create Scene Controllers for your scenes and put in editor field SceneName your scene name. For example:
 ```C#
 namespace Controllers.TestScene
 {
