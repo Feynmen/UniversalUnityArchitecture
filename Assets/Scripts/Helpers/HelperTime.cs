@@ -10,8 +10,7 @@
         
         public static string ToTotalTime(this uint seconds)
         {
-            var timeSpan = System.TimeSpan.FromSeconds(seconds);
-            return string.Format("{0:D2}:{1:D2}", timeSpan.Minutes, timeSpan.Seconds);
+            return GetTotalTime(seconds);
         } 
     }
 }
