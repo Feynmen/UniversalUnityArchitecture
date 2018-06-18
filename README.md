@@ -120,7 +120,7 @@ namespace Controllers.TestScene
 }
 ```
 ## Another features(like Managers) and logic of workflow
-You can read this in Wiki
+You can read this in **[Wiki](https://github.com/Feynmen/UniversalUnityArchitecture/wiki)**
 ## Summary
 I applied this logic to several projects of different directions and it successfully demonstrated itself as a universal and enduring approach to the work of a large team on a project
 
