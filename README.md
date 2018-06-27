@@ -94,7 +94,7 @@ namespace Controllers.TestScene
 	}
 }
 ```
-9) You can cathc moment when your controller Enabling or Disabling. For example:
+9) You can catch moment when your controller Enabling or Disabling. For example:
 ```C#
 namespace Controllers.TestScene
 {
