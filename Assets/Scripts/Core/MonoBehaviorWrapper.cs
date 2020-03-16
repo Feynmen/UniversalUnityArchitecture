@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Core
 {
-    public abstract class MonoBehaviorWraper : MonoBehaviour
+    public abstract class MonoBehaviorWrapper : MonoBehaviour
     {
         private Transform _transform;
         

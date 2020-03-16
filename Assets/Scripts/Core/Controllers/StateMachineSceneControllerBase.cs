@@ -5,14 +5,14 @@ namespace Core.Controllers
 {
 	public abstract class StateMachineSceneControllerBase : SceneControllerBase 
 	{
-		protected StateControllerBase CurentState { private set; get; }
+		protected StateControllerBase CurrentState { private set; get; }
 		private IEnumerator _changeStateRoutine;
 		
 		public void ActiveState<T>() where T : StateControllerBase
 		{
 			if (_changeStateRoutine != null)
 			{
-				throw new Exception("Can't change state because change operation in progress " + CurentState.ToString());
+				throw new Exception("Can't change state because change operation in progress " + CurrentState.ToString());
 			}
 			var state = Get<T>();
 
@@ -27,11 +27,11 @@ namespace Core.Controllers
 		
 		private IEnumerator ChangeState(StateControllerBase state)
 		{
-			if (CurentState != null)
+			if (CurrentState != null)
 			{
-				yield return CurentState.ExitState();
+				yield return CurrentState.ExitState();
 			}
-			CurentState = state;
+			CurrentState = state;
 			_changeStateRoutine = null;
 			yield return state.EnterState();
 			state.StartProcessing();

@@ -34,7 +34,7 @@ namespace Core.Controllers
 
 		protected void ActiveState<T>() where T : StateControllerBase
 		{
-			GetSceneControler<StateMachineSceneControllerBase>().ActiveState<T>();
+			GetSceneController<StateMachineSceneControllerBase>().ActiveState<T>();
 		}
 	}
 }

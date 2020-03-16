@@ -6,36 +6,23 @@ using Core.Atributes;
 using Core.Interfaces;
 using UnityEngine;
 using System.Collections;
+using JetBrains.Annotations;
 using UnityEngine.SceneManagement;
 
 namespace Core.Controllers
 {
-    public abstract class SceneControllerBase : MonoBehaviorWraper
+    public abstract class SceneControllerBase : MonoBehaviorWrapper, IReleaseble
     {
-        [SerializeField] protected string sceneName;
-
-        private const string DEBUG_APPSYS_PREFAB_PATH = "Prefabs/Debug_ApplicationSystem";
+        [SerializeField] [ShowOnly] private string _sceneName;
+        public bool IsReady { private set; get; }
+        public Queue<IEnumerator> PreInitExecutionQueue => _preInitExecutionQueue ?? (_preInitExecutionQueue = new Queue<IEnumerator>());
         
         private readonly Dictionary<Type, ControllerBase> _controllers = new Dictionary<Type, ControllerBase>();
+        private Queue<IEnumerator> _preInitExecutionQueue;
         private CoreSystem _system;
 
-        public bool IsReady { private set; get; }
+        #region Unity
 
-        private Queue<IEnumerator> _preInitExecutionQueue;
-        public Queue<IEnumerator> PreInitExecutionQueue
-        {
-            get
-            {
-                if (_preInitExecutionQueue == null)
-                {
-                    _preInitExecutionQueue = new Queue<IEnumerator>();
-                }
-                return _preInitExecutionQueue;
-            }
-        }
-
-        public abstract IEnumerator Init();
-     
         private void Awake()
         {
             InitSystem();
@@ -56,6 +43,7 @@ namespace Core.Controllers
 
         private void OnDestroy()
         {
+            Release();
             foreach (var controller in _controllers)
             {
                 (controller.Value as IReleaseble).Release();
@@ -63,43 +51,84 @@ namespace Core.Controllers
             GC.Collect();
         }
 
+        #endregion
+        
+        public abstract IEnumerator Init();
+        
+        public void RegisterController(ControllerBase controller)
+        {
+            var newControllerType = controller.GetType();
+            if (!_controllers.ContainsKey(newControllerType))
+            {
+                InjectObject(controller);
+                _controllers.Add(newControllerType, controller);
+                (controller as IInitializable).Init();
+            }
+            else
+            {
+                Debug.LogError($"[SceneControllerBase] Registration Failed! {newControllerType.Name} already exist in {_sceneName}! ");
+            }
+        }
+
+        public void UnregisterController(ControllerBase controller)
+        {
+            _controllers.Remove(controller.GetType());
+            (controller as IReleaseble).Release();
+        }
+        
+        public List<T> FindObjectsOnScene<T>() where T : Behaviour
+        {
+            return Resources.FindObjectsOfTypeAll<T>().Where(x => !string.IsNullOrEmpty(x.gameObject.scene.name) && x.gameObject.scene.name.Equals(_sceneName)).ToList();
+        }
+        
+        public virtual void Release() { }
+
         #region Injection Methods
 
         private void SelfInjection()
         {
-            //TODO Change to this and test
-            var sceneController = (from SceneControllerBase cb in FindObjectsOfType(typeof(SceneControllerBase)) where cb.gameObject.scene.name.Equals(sceneName) select cb).FirstOrDefault();
+            var sceneController = FindObjectsOnScene<SceneControllerBase>().FirstOrDefault();
             if (sceneController != null)
             {
                 InjectObject(sceneController);
             }
             else
             {
-                Debug.LogError("Can't find SceneController on this scene, please add it and start again!");
+                Debug.LogError($"[SceneControllerBase] Can't find SceneController on {_sceneName} scene, please add it and start again!");
             }
         }
 
         private void ControllersInjection()
         {
-            var controllers = from ControllerBase cb in FindObjectsOfType(typeof(ControllerBase)) where cb.gameObject.scene.name.Equals(sceneName) select cb;
-
+            var controllers = FindObjectsOnScene<ControllerBase>();
+            
             foreach (var controller in controllers)
             {
-                InjectObject(controller);
-                _controllers.Add(controller.GetType(), controller);
+                var controllerType = controller.GetType();
+                if (!_controllers.ContainsKey(controllerType))
+                {
+                    InjectObject(controller);
+                    _controllers.Add(controllerType, controller);
+                }
+                else
+                {
+                    throw new SystemException($"Controller \"{controllerType.Name}\" in the game object \"{controller.gameObject.name}\" already exist on the scene \"{_sceneName}\"!" +
+                                              $" You can't add more than one the same controller in to the same scene!");
+                }
+                
             }
         }
 
         private void InjectObject(System.Object objectToInject)
         {
             var type = objectToInject.GetType();
-            var injectionObjects = from propertie in type.GetProperties(BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                                   where Attribute.IsDefined(propertie, typeof(Inject), true)
+            var injectionObjects = from propertyInfo in type.GetProperties(BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                                   where Attribute.IsDefined(propertyInfo, typeof(Inject), true)
                                    select
                                    new
                                    {
-                                       Property = propertie,
-                                       Atribute = propertie.GetCustomAttributes(typeof(Inject), true)[0] as Inject
+                                       Property = propertyInfo,
+                                       Atribute = propertyInfo.GetCustomAttributes(typeof(Inject), true)[0] as Inject
                                    };
 
             foreach (var obj in injectionObjects.ToList())
@@ -126,19 +155,12 @@ namespace Core.Controllers
 
         private void InitSystem()
         {
-            _system = FindObjectOfType(typeof(CoreSystem)) as CoreSystem;
+            _system = FindObjectOfType<CoreSystem>();
 
             if (_system == null)
             {
-#if UNITY_EDITOR
-                var appSystem = Resources.Load<ApplicationSystem>(DEBUG_APPSYS_PREFAB_PATH);
-                Instantiate(appSystem.gameObject);
-                _system = appSystem;
-                Debug.Log("[CoreSystem] Created " + appSystem.name);
-#else
-                Debug.LogError("Can't find ApplicationSystem on this scene, please add it and start again!");
-                throw new Exception("Can't find ApplicationSystem on this scene, please add it and start again!");
-#endif
+                _system  = new GameObject(nameof(ApplicationSystem)).AddComponent<ApplicationSystem>();
+                Debug.Log("[CoreSystem] Created " + _system.name);
             }
         }
 
@@ -174,8 +196,7 @@ namespace Core.Controllers
 
         public ControllerBase Get(Type controllerType)
         {
-            ControllerBase controller;
-            return _controllers.TryGetValue(controllerType, out controller) ? controller : null;
+            return _controllers.TryGetValue(controllerType, out var controller) ? controller : null;
         }
 
         public bool TryGet<T>(out T controller) where T : ControllerBase
@@ -186,8 +207,7 @@ namespace Core.Controllers
 
         public void Enable<T>() where T : ControllerBase
         {
-            T controller;
-            if (TryGet(out controller))
+            if (TryGet(out T controller))
             {
                 controller.Enable();
             }
@@ -195,8 +215,7 @@ namespace Core.Controllers
 
         public void Disable<T>() where T : ControllerBase
         {
-            T controller;
-            if (TryGet(out controller))
+            if (TryGet(out T controller))
             {
                 controller.Disable();
             }

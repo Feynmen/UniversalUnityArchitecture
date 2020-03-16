@@ -44,5 +44,10 @@ namespace Core
         {
             return _instance.StartCoroutine(enumerator);
         }
+        
+        public static void StopMainCoroutine(IEnumerator enumerator)
+        {
+            _instance.StopCoroutine(enumerator);
+        }
     }
 }

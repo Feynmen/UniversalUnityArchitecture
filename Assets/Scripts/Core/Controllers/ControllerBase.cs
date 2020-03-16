@@ -4,12 +4,12 @@ using UnityEngine;
 
 namespace Core.Controllers
 {
-    public abstract class ControllerBase : MonoBehaviorWraper, IInitializable, IReleaseble
+    public abstract class ControllerBase : MonoBehaviorWrapper, IInitializable, IReleaseble
     {
         [Inject(typeof(SceneControllerBase),false)]
-        protected SceneControllerBase SceneController { private set; get; }
+        protected SceneControllerBase SceneController { set; get; }
 
-        protected T GetSceneControler<T>() where T : SceneControllerBase
+        protected T GetSceneController<T>() where T : SceneControllerBase
         {
             return SceneController as T;
         }

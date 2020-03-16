@@ -2,7 +2,7 @@
 
 namespace Core.View
 {
-    public abstract class ViewBase : MonoBehaviorWraper, IInitializable, IReleaseble
+    public abstract class ViewBase : MonoBehaviorWrapper, IInitializable, IReleaseble
     {
         public abstract void Init();
 

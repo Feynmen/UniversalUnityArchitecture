@@ -2,16 +2,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using Core.Managers;
+using Core.Services;
 using Tools;
 using UnityEngine;
 
 namespace Core
 {
-    public class CoreSystem : MonoBehaviorWraper
+    public class CoreSystem : MonoBehaviorWrapper
     {
-        private static readonly Dictionary<Type, IManager> _managers = new Dictionary<Type, IManager>();
-
         [SerializeField] private List<ManagerInfo> _managersInfo = new List<ManagerInfo>();
+        
+        public static ServiceBase[] Services { get; }
+        private static readonly Dictionary<Type, IManager> _managers = new Dictionary<Type, IManager>();
 
         static CoreSystem()
         {
@@ -21,6 +23,14 @@ namespace Core
                 var manager = (IManager)Activator.CreateInstance(managerType);
                 _managers.Add(managerType, manager);
             }
+            
+            var services = ToolsGetter.Assembly.GetSubclassListThroughHierarchy<ServiceBase>(false);
+            Services = new ServiceBase[services.Count];
+            for (var i = 0; i < services.Count; i++)
+            {
+                Services[i] = (ServiceBase)Activator.CreateInstance(services[i]);
+                Debug.Log($"[CoreSystem] Service ({services[i].Name}) Created!");
+            }
         }
 
         protected void Init()
@@ -29,6 +39,11 @@ namespace Core
             {
                 manager.Value.Init();
                 _managersInfo.Add(new ManagerInfo() { Name = manager.Key.Name });
+            }
+            
+            foreach (var service in Services)
+            {
+                service.Init();
             }
         }
 
